@@ -1,4 +1,4 @@
-package quick
+package nest
 
 import (
 	"net/http"
@@ -10,7 +10,6 @@ type route struct {
 	handler http.HandlerFunc
 }
 
-// TODO: Cambiar los mapas por arrays -> orden determinista
 type router struct {
 	routes  []route
 	routers []mountedRouter
@@ -52,33 +51,17 @@ func (r *router) getRoutes() []route {
 /*** Basic HTTP Methods ***/
 
 func (r *router) Get(path string, handler http.HandlerFunc) {
-	r.routes = append(r.routes, route{
-		method:  "GET",
-		path:    path,
-		handler: handler,
-	})
+	r.routes = addRoute(r.routes, path, "GET", handler)
 }
 
 func (r *router) Post(path string, handler http.HandlerFunc) {
-	r.routes = append(r.routes, route{
-		method:  "POST",
-		path:    path,
-		handler: handler,
-	})
+	r.routes = addRoute(r.routes, path, "POST", handler)
 }
 
 func (r *router) Put(path string, handler http.HandlerFunc) {
-	r.routes = append(r.routes, route{
-		method:  "PUT",
-		path:    path,
-		handler: handler,
-	})
+	r.routes = addRoute(r.routes, path, "PUT", handler)
 }
 
 func (r *router) Delete(path string, handler http.HandlerFunc) {
-	r.routes = append(r.routes, route{
-		method:  "DELETE",
-		path:    path,
-		handler: handler,
-	})
+	r.routes = addRoute(r.routes, path, "DELETE", handler)
 }
