@@ -1,6 +1,8 @@
 package nest
 
 import (
+	"context"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -721,42 +723,254 @@ func TestMiddlewareCanHaltExecution(t *testing.T) {
 	}
 }
 
-// func TestMiddlewareCanModifyRequest(t *testing.T) {
-// 	app := NewServer()
-// 	var modifiedValue string
-//
-// 	app.Use(func(next http.HandlerFunc) http.HandlerFunc {
-// 		return func(w http.ResponseWriter, r *http.Request) {
-// 			// Modificar el contexto de la solicitud o un encabezado, por ejemplo
-// 			ctx := r.Context()
-// 			newCtx := context.WithValue(ctx, "user_id", "123")
-// 			r = r.WithContext(newCtx)
-// 			next(w, r)
-// 		}
-// 	})
-//
-// 	app.Get("/info", func(w http.ResponseWriter, r *http.Request) {
-// 		val := r.Context().Value("user_id")
-// 		if val != nil {
-// 			modifiedValue = val.(string)
-// 		}
-// 		w.WriteHeader(http.StatusOK)
-// 		w.Write([]byte(modifiedValue))
-// 	})
-//
-// 	app.setUpRouters()
-//
-// 	req := httptest.NewRequest("GET", "/info/", nil)
-// 	rr := httptest.NewRecorder()
-// 	app.handler.ServeHTTP(rr, req)
-//
-// 	if rr.Code != http.StatusOK {
-// 		t.Errorf("Expected status OK, got %d", rr.Code)
-// 	}
-// 	if modifiedValue != "123" {
-// 		t.Errorf("Expected modifiedValue '123', got '%s'", modifiedValue)
-// 	}
-// 	if rr.Body.String() != "123" {
-// 		t.Errorf("Expected body '123', got '%s'", rr.Body.String())
-// 	}
-// }
+func TestMiddlewareCanModifyRequest(t *testing.T) {
+	app := NewServer()
+	var modifiedValue string
+
+	app.Use(func(next http.HandlerFunc) http.HandlerFunc {
+		return func(w http.ResponseWriter, r *http.Request) {
+			// Modificar el contexto de la solicitud o un encabezado, por ejemplo
+			ctx := r.Context()
+			newCtx := context.WithValue(ctx, "user_id", "123")
+			r = r.WithContext(newCtx)
+			next(w, r)
+		}
+	})
+
+	app.Get("/info", func(w http.ResponseWriter, r *http.Request) {
+		val := r.Context().Value("user_id")
+		if val != nil {
+			modifiedValue = val.(string)
+		}
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(modifiedValue))
+	})
+
+	app.setUpRouters()
+
+	req := httptest.NewRequest("GET", "/info/", nil)
+	rr := httptest.NewRecorder()
+	app.handler.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Errorf("Expected status OK, got %d", rr.Code)
+	}
+	if modifiedValue != "123" {
+		t.Errorf("Expected modifiedValue '123', got '%s'", modifiedValue)
+	}
+	if rr.Body.String() != "123" {
+		t.Errorf("Expected body '123', got '%s'", rr.Body.String())
+	}
+}
+
+// --- NUEVOS TESTS PARA PARÁMETROS DE RUTA ---
+
+func TestApp_PathParameter(t *testing.T) {
+	app := NewServer()
+	expectedID := "123"
+	app.Get("/users/{id}", func(w http.ResponseWriter, r *http.Request) {
+		id := r.PathValue("id")
+		if id != expectedID {
+			t.Errorf("Expected ID '%s', got '%s'", expectedID, id)
+		}
+		w.Write([]byte("User ID: " + id))
+	})
+
+	app.setUpRouters()
+
+	req := httptest.NewRequest("GET", "/users/123/", nil)
+	rr := httptest.NewRecorder()
+	app.handler.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Errorf("Expected status OK, got %d", rr.Code)
+	}
+	body, _ := io.ReadAll(rr.Body)
+	if string(body) != "User ID: 123" {
+		t.Errorf("Expected body 'User ID: 123', got '%s'", string(body))
+	}
+}
+
+func TestApp_MultiplePathParameters(t *testing.T) {
+	app := NewServer()
+	expectedUserID := "user456"
+	expectedBookID := "book789"
+
+	app.Get("/users/{userID}/books/{bookID}", func(w http.ResponseWriter, r *http.Request) {
+		userID := r.PathValue("userID")
+		bookID := r.PathValue("bookID")
+
+		if userID != expectedUserID {
+			t.Errorf("Expected UserID '%s', got '%s'", expectedUserID, userID)
+		}
+		if bookID != expectedBookID {
+			t.Errorf("Expected BookID '%s', got '%s'", expectedBookID, bookID)
+		}
+		w.Write([]byte(fmt.Sprintf("User: %s, Book: %s", userID, bookID)))
+	})
+
+	app.setUpRouters()
+
+	req := httptest.NewRequest("GET", "/users/user456/books/book789/", nil)
+	rr := httptest.NewRecorder()
+	app.handler.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Errorf("Expected status OK, got %d", rr.Code)
+	}
+	body, _ := io.ReadAll(rr.Body)
+	if string(body) != "User: user456, Book: book789" {
+		t.Errorf("Expected body 'User: user456, Book: book789', got '%s'", string(body))
+	}
+}
+
+func TestRouter_PathParameter(t *testing.T) {
+	app := NewServer()
+	userRouter := NewRouter()
+	expectedUserID := "987"
+
+	userRouter.Get("/{id}", func(w http.ResponseWriter, r *http.Request) {
+		id := r.PathValue("id")
+		if id != expectedUserID {
+			t.Errorf("Expected ID '%s', got '%s'", expectedUserID, id)
+		}
+		w.Write([]byte("Router User ID: " + id))
+	})
+
+	app.UseRouter("/api/users", userRouter)
+	app.setUpRouters()
+
+	req := httptest.NewRequest("GET", "/api/users/987/", nil)
+	rr := httptest.NewRecorder()
+	app.handler.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Errorf("Expected status OK, got %d", rr.Code)
+	}
+	body, _ := io.ReadAll(rr.Body)
+	if string(body) != "Router User ID: 987" {
+		t.Errorf("Expected body 'Router User ID: 987', got '%s'", string(body))
+	}
+}
+
+func TestRouter_NestedPathParameters(t *testing.T) {
+	app := NewServer()
+	mainRouter := NewRouter()
+	subRouter := NewRouter()
+
+	expectedProductID := "prodA"
+	expectedReviewID := "revB"
+
+	subRouter.Get("/reviews/{reviewID}", func(w http.ResponseWriter, r *http.Request) {
+		productID := r.PathValue("productID") // Vendrá del router padre
+		reviewID := r.PathValue("reviewID")
+
+		if productID != expectedProductID {
+			t.Errorf("Expected ProductID '%s', got '%s'", expectedProductID, productID)
+		}
+		if reviewID != expectedReviewID {
+			t.Errorf("Expected ReviewID '%s', got '%s'", expectedReviewID, reviewID)
+		}
+		w.Write([]byte(fmt.Sprintf("Product: %s, Review: %s", productID, reviewID)))
+	})
+
+	mainRouter.UseRouter("/products/{productID}", subRouter)
+	app.UseRouter("/store", mainRouter)
+	app.setUpRouters()
+
+	req := httptest.NewRequest("GET", "/store/products/prodA/reviews/revB/", nil)
+	rr := httptest.NewRecorder()
+	app.handler.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Errorf("Expected status OK, got %d", rr.Code)
+	}
+	body, _ := io.ReadAll(rr.Body)
+	if string(body) != "Product: prodA, Review: revB" {
+		t.Errorf("Expected body 'Product: prodA, Review: revB', got '%s'", string(body))
+	}
+}
+
+func TestPathParameter_WithMiddleware(t *testing.T) {
+	app := NewServer()
+	var middlewareCalled bool
+	expectedID := "42"
+
+	// Middleware que puede leer el contexto (aunque r.PathValue no está en el contexto en sí,
+	// se accede directamente del request)
+	app.Use(func(next http.HandlerFunc) http.HandlerFunc {
+		return func(w http.ResponseWriter, r *http.Request) {
+			middlewareCalled = true
+			if r.PathValue("id") != "" && r.PathValue("id") != expectedID {
+				t.Errorf("Middleware: Expected ID '%s', got '%s' from PathValue", expectedID, r.PathValue("id"))
+			}
+			next(w, r)
+		}
+	})
+
+	app.Get("/items/{id}", func(w http.ResponseWriter, r *http.Request) {
+		id := r.PathValue("id")
+		if id != expectedID {
+			t.Errorf("Handler: Expected ID '%s', got '%s'", expectedID, id)
+		}
+		w.Write([]byte("Item ID: " + id))
+	})
+
+	app.setUpRouters()
+
+	req := httptest.NewRequest("GET", "/items/42/", nil)
+	rr := httptest.NewRecorder()
+	app.handler.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Errorf("Expected status OK, got %d", rr.Code)
+	}
+	if !middlewareCalled {
+		t.Error("Middleware was not called")
+	}
+	body, _ := io.ReadAll(rr.Body)
+	if string(body) != "Item ID: 42" {
+		t.Errorf("Expected body 'Item ID: 42', got '%s'", string(body))
+	}
+}
+
+// Test para asegurar que el comportamiento de trailing slash sigue funcionando con path parameters
+func TestApp_PathParameter_WithTrailingSlash(t *testing.T) {
+	app := NewServer()
+	expectedID := "55"
+	app.Get("/widgets/{id}", func(w http.ResponseWriter, r *http.Request) {
+		id := r.PathValue("id")
+		if id != expectedID {
+			t.Errorf("Expected ID '%s', got '%s'", expectedID, id)
+		}
+		w.Write([]byte("Widget ID: " + id))
+	})
+
+	app.setUpRouters()
+
+	// Probar con trailing slash
+	req := httptest.NewRequest("GET", "/widgets/55/", nil)
+	rr := httptest.NewRecorder()
+	app.handler.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Errorf("Expected status OK for trailing slash, got %d", rr.Code)
+	}
+	body, _ := io.ReadAll(rr.Body)
+	if string(body) != "Widget ID: 55" {
+		t.Errorf("Expected body 'Widget ID: 55', got '%s'", string(body))
+	}
+
+	// Probar sin trailing slash (para asegurar que ambas funcionan)
+	req = httptest.NewRequest("GET", "/widgets/55/", nil)
+	rr = httptest.NewRecorder()
+	app.handler.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Errorf("Expected status OK for no trailing slash, got %d", rr.Code)
+	}
+	body, _ = io.ReadAll(rr.Body)
+	if string(body) != "Widget ID: 55" {
+		t.Errorf("Expected body 'Widget ID: 55', got '%s'", string(body))
+	}
+}
