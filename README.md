@@ -1,8 +1,8 @@
-# Nest 🪺
+# Cafe ☕
 
 A minimalist HTTP micro-framework for Go, inspired by *Nest / Express*-style composition with routers and middlewares, but built **entirely on top of `net/http`**.
 
-Nest is designed to:
+Cafe is designed to:
 
 * Keep the core small and easy to understand
 * Avoid external dependencies
@@ -24,7 +24,7 @@ Nest is designed to:
 ## 📦 Installation
 
 ```bash
-go get github.com/youruser/nest
+go get github.com/LucasSim0n/cafe
 ```
 
 ---
@@ -36,11 +36,11 @@ package main
 
 import (
     "net/http"
-    "github.com/youruser/nest"
+    "github.com/LucasSim0n/cafe"
 )
 
 func main() {
-    app := nest.NewServer()
+    app := cafe.NewServer()
 
     app.Get("/", func(w http.ResponseWriter, r *http.Request) {
         w.Write([]byte("Hello world"))
@@ -54,6 +54,24 @@ func main() {
 
 ## 🛣️ HTTP Routes
 
+> **Path parameters support**
+>
+> Cafe inherits native path parameter support from **`net/http` (Go 1.22+)**.
+> This means you can use parameterized paths directly, following the standard library syntax:
+>
+> ```go
+> app.Get("/users/{id}", handler)
+> app.Get("/posts/{slug}", handler)
+> ```
+>
+> Parameters can be accessed from the request using `r.PathValue("param")`:
+>
+> ```go
+> id := r.PathValue("id")
+> ```
+>
+> No custom router or parameter parser is implemented in Cafe — it intentionally relies on the behavior and guarantees of `net/http`.
+
 Both the server and routers support the basic HTTP methods:
 
 ```go
@@ -65,24 +83,6 @@ app.Delete(path, handler)
 
 Duplicate routes (same method + path) are automatically ignored.
 
-**Path parameters support**
-
-Nest inherits native path parameter support from **`net/http` (Go 1.22+)**.
-This means you can use parameterized paths directly, following the standard library syntax:
-
-```go
-app.Get("/users/{id}", handler)
-app.Get("/posts/{slug}", handler)
-```
-
-Parameters can be accessed from the request using `r.PathValue("param")`:
-
-```go
-id := r.PathValue("id")
-```
-
-No custom router or parameter parser is implemented in Nest — it intentionally relies on the behavior and guarantees of `net/http`.
-
 ---
 
 ## 🧩 Routers
@@ -90,7 +90,7 @@ No custom router or parameter parser is implemented in Nest — it intentionally
 You can group routes using routers and mount them under a base path.
 
 ```go
-api := nest.NewRouter()
+api := cafe.NewRouter()
 
 api.Get("/users", usersHandler)
 api.Post("/users", createUserHandler)
@@ -112,7 +112,7 @@ POST /api/users
 Routers can also contain other routers:
 
 ```go
-admin := nest.NewRouter()
+admin := cafe.NewRouter()
 admin.Get("/dashboard", dashboardHandler)
 
 api.UseRouter("/admin", admin)
@@ -195,7 +195,7 @@ mw1 → mw2 → handler
 
 ## 📌 Philosophy
 
-Nest **does not aim to replace** larger frameworks like Gin, Echo, or Fiber.
+Cafe **does not aim to replace** larger frameworks like Gin, Echo, or Fiber.
 
 It’s ideal if you want to:
 
@@ -211,12 +211,6 @@ It’s ideal if you want to:
 * [ ] Context helpers
 * [ ] Error handling
 * [ ] Parametrized route groups
-
----
-
-## 📄 License
-
-MIT
 
 ---
 
