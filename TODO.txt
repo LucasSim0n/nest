@@ -1,6 +1,0 @@
-Soporte de middlewares. Implementar tipo específico?
-
-Revisar la implementación de los mapas:
- - Valorar migración a otro tipo de estructuras para preservar el orden de agregación de rutas. <- IMPORTANTE
-    Al legar la responsabilidad de la colisión de rutas al desarrollador, debemos garantizar que la implementación es determinista.
-    Los mapas no nos garantizan que el retorno sea siempre el mismo.

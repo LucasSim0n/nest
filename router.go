@@ -4,6 +4,8 @@ import (
 	"net/http"
 )
 
+/*** Definitions ***/
+
 type route struct {
 	path    string
 	method  string
@@ -11,8 +13,9 @@ type route struct {
 }
 
 type router struct {
-	routes  []route
-	routers []mountedRouter
+	routes      []route
+	routers     []mountedRouter
+	middlewares []middleware
 }
 
 type mountedRouter struct {
@@ -20,12 +23,16 @@ type mountedRouter struct {
 	router *router
 }
 
+/*** Init ***/
+
 func NewRouter() *router {
 	return &router{
 		routes:  []route{},
 		routers: []mountedRouter{},
 	}
 }
+
+/*** Aggregation ***/
 
 func (r *router) UseRouter(path string, ro *router) {
 	for _, mr := range r.routers {
@@ -36,12 +43,23 @@ func (r *router) UseRouter(path string, ro *router) {
 	r.routers = append(r.routers, mountedRouter{path: path, router: ro})
 }
 
+func (r *router) Use(mw middleware) {
+	r.middlewares = append(r.middlewares, mw)
+}
+
+/*** Assembly ***/
+
 func (r *router) getRoutes() []route {
-	mountedRoutes := append([]route{}, r.routes...)
+	mountedRoutes := []route{}
+	for _, rt := range r.routes {
+		rt.handler = setUpMiddlewares(rt.handler, r.middlewares)
+		mountedRoutes = append(mountedRoutes, rt)
+	}
 	for _, mr := range r.routers {
 		rtrRoutes := mr.router.getRoutes()
 		for _, rt := range rtrRoutes {
 			rt.path = mr.path + rt.path
+			rt.handler = setUpMiddlewares(rt.handler, r.middlewares)
 			mountedRoutes = append(mountedRoutes, rt)
 		}
 	}
