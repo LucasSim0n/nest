@@ -54,24 +54,6 @@ func main() {
 
 ## 🛣️ HTTP Routes
 
-> **Path parameters support**
->
-> Cafe inherits native path parameter support from **`net/http` (Go 1.22+)**.
-> This means you can use parameterized paths directly, following the standard library syntax:
->
-> ```go
-> app.Get("/users/{id}", handler)
-> app.Get("/posts/{slug}", handler)
-> ```
->
-> Parameters can be accessed from the request using `r.PathValue("param")`:
->
-> ```go
-> id := r.PathValue("id")
-> ```
->
-> No custom router or parameter parser is implemented in Cafe — it intentionally relies on the behavior and guarantees of `net/http`.
-
 Both the server and routers support the basic HTTP methods:
 
 ```go
@@ -80,6 +62,24 @@ app.Post(path, handler)
 app.Put(path, handler)
 app.Delete(path, handler)
 ```
+
+**Path parameters support**
+
+Cafe inherits native path parameter support from **`net/http` (Go 1.22+)**.
+This means you can use parameterized paths directly, following the standard library syntax:
+
+```go
+app.Get("/users/{id}", handler)
+app.Get("/posts/{slug}", handler)
+```
+
+Parameters can be accessed from the request using `r.PathValue("param")`:
+
+```go
+id := r.PathValue("id")
+```
+
+No custom router or parameter parser is implemented in Cafe — it intentionally relies on the behavior and guarantees of `net/http`.
 
 Duplicate routes (same method + path) are automatically ignored.
 

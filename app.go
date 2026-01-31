@@ -31,7 +31,7 @@ func NewServer() App {
 
 /*** Aggregation ***/
 
-func (a *App) UseRouter(path string, ro *router) {
+func (a *App) UseRouter(path string, ro *Router) {
 	for _, mr := range a.routers {
 		if mr.path == path {
 			return

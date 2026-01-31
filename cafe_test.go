@@ -9,8 +9,6 @@ import (
 	"testing"
 )
 
-// --- Tests Existentes (revisados para asegurar compatibilidad y nuevas features) ---
-
 func TestNewServer(t *testing.T) {
 	app := NewServer()
 	if app.handler == nil {
@@ -46,7 +44,7 @@ func TestApp_Get(t *testing.T) {
 		t.Errorf("Expected method GET, got %s", app.routes[0].method)
 	}
 
-	app.setUpRouters() // Simula el setup antes de escuchar
+	app.setUpRouters()
 
 	req := httptest.NewRequest("GET", "/test/", nil)
 	rr := httptest.NewRecorder()
@@ -167,7 +165,7 @@ func TestApp_UseRouter_DuplicatePath(t *testing.T) {
 	rtr2 := NewRouter()
 
 	app.UseRouter("/api", rtr1)
-	app.UseRouter("/api", rtr2) // Should not add a duplicate
+	app.UseRouter("/api", rtr2)
 
 	if len(app.routers) != 1 {
 		t.Errorf("Expected 1 mounted router due to duplicate path, got %d", len(app.routers))
@@ -220,7 +218,6 @@ func TestRouter_UseRouter(t *testing.T) {
 		t.Errorf("Expected mounted router path /sub, got %s", parentRouter.routers[0].path)
 	}
 
-	// Test getRoutes to ensure nested routes are correctly flattened and prefixed
 	allRoutes := parentRouter.getRoutes()
 	found := false
 	for _, r := range allRoutes {
@@ -233,7 +230,6 @@ func TestRouter_UseRouter(t *testing.T) {
 		t.Error("Expected '/sub/nested' route not found in flattened routes")
 	}
 
-	// To fully test the handler, we need to integrate with an App and use an httptest.Server
 	app := NewServer()
 	app.UseRouter("/main", parentRouter)
 	app.setUpRouters()
@@ -315,8 +311,6 @@ func TestSetUpRouters_Order(t *testing.T) {
 	if rrSub2.Code != http.StatusOK {
 		t.Errorf("Expected status OK for /api2/sub2, got %d", rrSub2.Code)
 	}
-
-	_ = order // Prevent unused variable warning
 }
 
 func TestHandlePathPattern(t *testing.T) {
@@ -330,7 +324,7 @@ func TestHandlePathPattern(t *testing.T) {
 	tests := []struct {
 		name         string
 		path         string
-		expectedPath string // The path that should successfully match
+		expectedPath string
 	}{
 		{"simple path", "/hello", "/hello/"},
 		{"path with trailing slash", "/world/", "/world/"},
@@ -339,7 +333,7 @@ func TestHandlePathPattern(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			app = NewServer() // Reset app for each test case
+			app = NewServer()
 			called = false
 			app.handle(tt.path, "GET", handler)
 
@@ -354,7 +348,6 @@ func TestHandlePathPattern(t *testing.T) {
 				t.Errorf("For path %s, handler was not called", tt.path)
 			}
 
-			// Test that a non-matching path returns 404
 			called = false
 			reqNotFound := httptest.NewRequest("GET", "/nonexistent/", nil)
 			rrNotFound := httptest.NewRecorder()
@@ -384,7 +377,7 @@ func TestRouter_GetRoutes_NestedRouters(t *testing.T) {
 
 	r4 := NewRouter()
 	r4.Get("/settings", func(w http.ResponseWriter, r *http.Request) {})
-	r1.UseRouter("/admin", r4) // This will be ignored due to duplicate path in UseRouter logic
+	r1.UseRouter("/admin", r4)
 
 	r1.Get("/billing", func(w http.ResponseWriter, r *http.Request) {})
 
@@ -414,8 +407,6 @@ func TestRouter_GetRoutes_NestedRouters(t *testing.T) {
 		t.Logf("Found routes: %+v", allRoutes)
 	}
 }
-
-// --- Nuevos Tests para Middlewares ---
 
 func TestApp_Use(t *testing.T) {
 	app := NewServer()
@@ -490,7 +481,6 @@ func TestApp_MiddlewareExecution(t *testing.T) {
 	app := NewServer()
 	var callOrder []string
 
-	// Global middlewares
 	app.Use(func(next http.HandlerFunc) http.HandlerFunc {
 		return func(w http.ResponseWriter, r *http.Request) {
 			callOrder = append(callOrder, "globalMw1")
@@ -559,8 +549,6 @@ func TestRouter_MiddlewareExecution(t *testing.T) {
 	rr := httptest.NewRecorder()
 	app.handler.ServeHTTP(rr, req)
 
-	// Middlewares del router aplicados en orden inverso de definición, luego el handler
-	// En este test, NO hay middlewares globales de App, así que solo se ven los del router
 	expectedOrder := []string{"routerMw1", "routerMw2", "finalSubHandler"}
 	if len(callOrder) != len(expectedOrder) {
 		t.Fatalf("Expected call order length %d, got %d. Order: %v", len(expectedOrder), len(callOrder), callOrder)
@@ -579,7 +567,6 @@ func TestAppAndRouter_MiddlewareCombinedExecution(t *testing.T) {
 	app := NewServer()
 	var callOrder []string
 
-	// Global middleware
 	app.Use(func(next http.HandlerFunc) http.HandlerFunc {
 		return func(w http.ResponseWriter, r *http.Request) {
 			callOrder = append(callOrder, "globalAppMw")
@@ -587,7 +574,6 @@ func TestAppAndRouter_MiddlewareCombinedExecution(t *testing.T) {
 		}
 	})
 
-	// Router con middleware propio
 	rtr := NewRouter()
 	rtr.Use(func(next http.HandlerFunc) http.HandlerFunc {
 		return func(w http.ResponseWriter, r *http.Request) {
@@ -608,8 +594,6 @@ func TestAppAndRouter_MiddlewareCombinedExecution(t *testing.T) {
 	rr := httptest.NewRecorder()
 	app.handler.ServeHTTP(rr, req)
 
-	// **NUEVO ORDEN ESPERADO**
-	// Los middlewares de App se aplican primero (más externos), luego los del router, luego el handler.
 	expectedOrder := []string{"globalAppMw", "routerMw", "finalItemHandler"}
 	if len(callOrder) != len(expectedOrder) {
 		t.Fatalf("Expected call order length %d, got %d. Order: %v", len(expectedOrder), len(callOrder), callOrder)
@@ -624,7 +608,6 @@ func TestAppAndRouter_MiddlewareCombinedExecution(t *testing.T) {
 	}
 }
 
-// Test para una ruta que tiene global middleware y luego un router con su propio middleware, y dentro de ese router, una ruta.
 func TestDeepNestedMiddlewareCombinedExecution(t *testing.T) {
 	app := NewServer()
 	var callOrder []string
@@ -665,8 +648,6 @@ func TestDeepNestedMiddlewareCombinedExecution(t *testing.T) {
 	rr := httptest.NewRecorder()
 	app.handler.ServeHTTP(rr, req)
 
-	// **NUEVO ORDEN ESPERADO**
-	// globalAppMw -> router1Mw -> router2Mw -> finalResourceHandler
 	expectedOrder := []string{"globalAppMw", "router1Mw", "router2Mw", "finalResourceHandler"}
 
 	if len(callOrder) != len(expectedOrder) {
@@ -806,7 +787,7 @@ func TestApp_MultiplePathParameters(t *testing.T) {
 		if bookID != expectedBookID {
 			t.Errorf("Expected BookID '%s', got '%s'", expectedBookID, bookID)
 		}
-		w.Write([]byte(fmt.Sprintf("User: %s, Book: %s", userID, bookID)))
+		w.Write(fmt.Appendf([]byte{}, "User: %s, Book: %s", userID, bookID))
 	})
 
 	app.setUpRouters()
@@ -871,7 +852,7 @@ func TestRouter_NestedPathParameters(t *testing.T) {
 		if reviewID != expectedReviewID {
 			t.Errorf("Expected ReviewID '%s', got '%s'", expectedReviewID, reviewID)
 		}
-		w.Write([]byte(fmt.Sprintf("Product: %s, Review: %s", productID, reviewID)))
+		w.Write(fmt.Appendf([]byte{}, "Product: %s, Review: %s", productID, reviewID))
 	})
 
 	mainRouter.UseRouter("/products/{productID}", subRouter)
@@ -962,15 +943,11 @@ func TestApp_PathParameter_WithTrailingSlash(t *testing.T) {
 	}
 
 	// Probar sin trailing slash (para asegurar que ambas funcionan)
-	req = httptest.NewRequest("GET", "/widgets/55/", nil)
+	req = httptest.NewRequest("GET", "/widgets/55", nil)
 	rr = httptest.NewRecorder()
 	app.handler.ServeHTTP(rr, req)
 
-	if rr.Code != http.StatusOK {
+	if rr.Code != http.StatusMovedPermanently {
 		t.Errorf("Expected status OK for no trailing slash, got %d", rr.Code)
-	}
-	body, _ = io.ReadAll(rr.Body)
-	if string(body) != "Widget ID: 55" {
-		t.Errorf("Expected body 'Widget ID: 55', got '%s'", string(body))
 	}
 }

@@ -12,7 +12,7 @@ type route struct {
 	handler http.HandlerFunc
 }
 
-type router struct {
+type Router struct {
 	routes      []route
 	routers     []mountedRouter
 	middlewares []middleware
@@ -20,13 +20,13 @@ type router struct {
 
 type mountedRouter struct {
 	path   string
-	router *router
+	router *Router
 }
 
 /*** Init ***/
 
-func NewRouter() *router {
-	return &router{
+func NewRouter() *Router {
+	return &Router{
 		routes:  []route{},
 		routers: []mountedRouter{},
 	}
@@ -34,7 +34,7 @@ func NewRouter() *router {
 
 /*** Aggregation ***/
 
-func (r *router) UseRouter(path string, ro *router) {
+func (r *Router) UseRouter(path string, ro *Router) {
 	for _, mr := range r.routers {
 		if mr.path == path {
 			return
@@ -43,13 +43,13 @@ func (r *router) UseRouter(path string, ro *router) {
 	r.routers = append(r.routers, mountedRouter{path: path, router: ro})
 }
 
-func (r *router) Use(mw middleware) {
+func (r *Router) Use(mw middleware) {
 	r.middlewares = append(r.middlewares, mw)
 }
 
 /*** Assembly ***/
 
-func (r *router) getRoutes() []route {
+func (r *Router) getRoutes() []route {
 	mountedRoutes := []route{}
 	for _, rt := range r.routes {
 		rt.handler = setUpMiddlewares(rt.handler, r.middlewares)
@@ -68,18 +68,18 @@ func (r *router) getRoutes() []route {
 
 /*** Basic HTTP Methods ***/
 
-func (r *router) Get(path string, handler http.HandlerFunc) {
+func (r *Router) Get(path string, handler http.HandlerFunc) {
 	r.routes = addRoute(r.routes, path, "GET", handler)
 }
 
-func (r *router) Post(path string, handler http.HandlerFunc) {
+func (r *Router) Post(path string, handler http.HandlerFunc) {
 	r.routes = addRoute(r.routes, path, "POST", handler)
 }
 
-func (r *router) Put(path string, handler http.HandlerFunc) {
+func (r *Router) Put(path string, handler http.HandlerFunc) {
 	r.routes = addRoute(r.routes, path, "PUT", handler)
 }
 
-func (r *router) Delete(path string, handler http.HandlerFunc) {
+func (r *Router) Delete(path string, handler http.HandlerFunc) {
 	r.routes = addRoute(r.routes, path, "DELETE", handler)
 }
