@@ -10,6 +10,23 @@ Cafe is designed to:
 
 ---
 
+## 🎯 Motivation
+
+The Go standard library already provides a solid HTTP foundation, but building structured applications on top of `net/http` often leads to repetitive boilerplate or early adoption of heavy frameworks.
+
+Cafe exists to fill that gap.
+
+The goal is to offer:
+
+* A **thin abstraction** over `net/http`, not a replacement
+* Familiar composition patterns (routers + middlewares)
+* A codebase small enough to read and understand in one sitting
+* A learning-friendly framework that shows *how* things work
+
+If you enjoy knowing exactly what happens when a request hits your server, Cafe is for you.
+
+---
+
 ## ✨ Features
 
 * ✅ Simple API (`Get`, `Post`, `Put`, `Delete`)
@@ -29,7 +46,7 @@ go get github.com/LucasSim0n/cafe
 
 ---
 
-## 🚀 Basic usage
+## ⚡ Quick Start
 
 ```go
 package main
@@ -43,7 +60,7 @@ func main() {
     app := cafe.NewServer()
 
     app.Get("/", func(w http.ResponseWriter, r *http.Request) {
-        w.Write([]byte("Hello world"))
+        w.Write([]byte("Hello Cafe ☕"))
     })
 
     app.Listen(":3000")
@@ -52,49 +69,34 @@ func main() {
 
 ---
 
-## 🛣️ HTTP Routes
+## 🚀 Basic usage
 
-Both the server and routers support the basic HTTP methods:
+### 🛣️ HTTP Routes
 
-```go
-app.Get(path, handler)
-app.Post(path, handler)
-app.Put(path, handler)
-app.Delete(path, handler)
-```
-
-**Path parameters support**
+Both the server and routers support the basic HTTP methods.
 
 Cafe inherits native path parameter support from **`net/http` (Go 1.22+)**.
-This means you can use parameterized paths directly, following the standard library syntax:
 
 ```go
 app.Get("/users/{id}", handler)
-app.Get("/posts/{slug}", handler)
+app.Post("/users", postHandler)
+app.Put("/users/{id}", putHandler)
+app.Delete("/users/{id}", deleteHandler)
 ```
 
-Parameters can be accessed from the request using `r.PathValue("param")`:
+Access parameters:
 
 ```go
 id := r.PathValue("id")
 ```
 
-No custom router or parameter parser is implemented in Cafe — it intentionally relies on the behavior and guarantees of `net/http`.
-
-Duplicate routes (same method + path) are automatically ignored.
-
 ---
 
-## 🧩 Routers
-
-You can group routes using routers and mount them under a base path.
+### 🧩 Routers
 
 ```go
 api := cafe.NewRouter()
-
 api.Get("/users", usersHandler)
-api.Post("/users", createUserHandler)
-
 app.UseRouter("/api", api)
 ```
 
@@ -107,7 +109,7 @@ POST /api/users
 
 ---
 
-## 🌳 Nested routers
+### 🌳 Nested routers
 
 Routers can also contain other routers:
 
@@ -126,7 +128,7 @@ GET /api/admin/dashboard
 
 ---
 
-## 🧠 Middlewares
+### 🧠 Middlewares
 
 A middleware is a function that wraps an `http.HandlerFunc`:
 
@@ -134,7 +136,7 @@ A middleware is a function that wraps an `http.HandlerFunc`:
 type middleware func(next http.HandlerFunc) http.HandlerFunc
 ```
 
-### Global middleware
+#### Global middleware
 
 ```go
 app.Use(func(next http.HandlerFunc) http.HandlerFunc {
@@ -149,7 +151,7 @@ Applied to **all** server routes.
 
 ---
 
-### Router-level middleware
+#### Router-level middleware
 
 ```go
 api.Use(authMiddleware)
@@ -159,7 +161,7 @@ Applied only to that router’s routes (and its child routers).
 
 ---
 
-### Execution order
+#### Execution order
 
 Middlewares run in declaration order:
 
@@ -195,23 +197,15 @@ mw1 → mw2 → handler
 
 ## 📌 Philosophy
 
-Cafe **does not aim to replace** larger frameworks like Gin, Echo, or Fiber.
-
-It’s ideal if you want to:
-
-* Learn how an HTTP framework works internally
-* Have full control over request flow
-* Keep your stack small and explicit
+Cafe **does not aim to replace** larger frameworks.
 
 ---
 
-## 🛠️ Roadmap (ideas)
+## 🤝 Contributing
 
-* [ ] Route-level middleware
-* [ ] Context helpers
-* [ ] Error handling
-* [ ] Parametrized route groups
+Contributions are welcome. Keep changes small, focused, and dependency-free.
 
 ---
 
 Built with ❤️ and `net/http`.
+
