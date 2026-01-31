@@ -69,7 +69,7 @@ func main() {
 
 ---
 
-## 🚀 Basic usage
+## 🚀 Usage
 
 ### 🛣️ HTTP Routes
 
